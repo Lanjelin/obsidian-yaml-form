@@ -1,3 +1,8 @@
+export type CsvNumberParseResult = {
+  values: number[];
+  invalid: string[];
+};
+
 export const deepClone = <T>(x: T): T => JSON.parse(JSON.stringify(x ?? {}));
 
 export function getAtPath<T = any>(obj: any, path?: string): T {
@@ -24,15 +29,30 @@ export const joinPath = (root: string, sub: string) => {
   return `${root}.${sub}`;
 };
 
-export const parseCsvNumbers = (s: string) =>
-  !s ? [] : s.split(",").map(x => x.trim()).filter(Boolean).map(Number).filter(Number.isFinite);
+/** Parse comma-separated numbers with validation feedback (no silent drops). */
+export const parseCsvNumbers = (s: string): CsvNumberParseResult => {
+  if (!s) return { values: [], invalid: [] };
+  const values: number[] = [];
+  const invalid: string[] = [];
+  s.split(",")
+    .map(x => x.trim())
+    .filter(x => x.length > 0)
+    .forEach(x => {
+      const n = Number(x);
+      if (Number.isFinite(n)) values.push(n);
+      else invalid.push(x);
+    });
+  return { values, invalid };
+};
 
-export const toCsvNumbers = (arr: unknown) => Array.isArray(arr) ? (arr as any[]).join(", ") : "";
+export const toCsvNumbers = (arr: unknown) =>
+  Array.isArray(arr) ? (arr as any[]).join(", ") : "";
 
 export const parseCsvText = (s: string) =>
   !s ? [] : s.split(",").map(x => x.trim()).filter(Boolean);
 
-export const toCsvText = (arr: unknown) => Array.isArray(arr) ? (arr as any[]).join(", ") : "";
+export const toCsvText = (arr: unknown) =>
+  Array.isArray(arr) ? (arr as any[]).join(", ") : "";
 
 export function coerceScalar(type: string, raw: string | boolean) {
   if (type === "number") {
@@ -45,13 +65,18 @@ export function coerceScalar(type: string, raw: string | boolean) {
 }
 
 // visibleIf evaluator
-export function isVisible(visibleIf: any | undefined, stagedModel: any, bindPathForItem?: string) {
+export function isVisible(
+  visibleIf: any | undefined,
+  stagedModel: any,
+  bindPathForItem?: string
+) {
   if (!visibleIf) return true;
   const checkPath = bindPathForItem ? `${bindPathForItem}.${visibleIf.path}` : visibleIf.path;
   const val = getAtPath(stagedModel, checkPath);
   if (visibleIf.equals !== undefined) return val === visibleIf.equals;
   if (visibleIf.notEquals !== undefined) return val !== visibleIf.notEquals;
-  if (visibleIf.contains !== undefined && typeof val === "string") return val.toLowerCase().includes(String(visibleIf.contains).toLowerCase());
+  if (visibleIf.contains !== undefined && typeof val === "string")
+    return val.toLowerCase().includes(String(visibleIf.contains).toLowerCase());
   if (visibleIf.isTruthy) return !!val;
   if (visibleIf.isFalsy) return !val;
   return true;

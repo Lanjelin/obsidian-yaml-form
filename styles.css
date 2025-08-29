@@ -40,9 +40,18 @@
 
 /* Validation (hook reserved) */
 .yaml-error {
-	outline: 2px solid var(--text-error, #e25);
-	border-radius: 6px;
+	border: 1px solid var(--text-error, #e25) !important;
+	box-shadow: 0 0 0 2px color-mix(in oklab, var(--text-error, #e25) 25%, transparent);
 }
+
+/* Inline error message under the field */
+.yaml-error-msg {
+	margin-top: 4px;
+	font-size: 0.85em;
+	line-height: 1.25;
+	color: var(--text-error, #e25);
+}
+
 
 /* Repeater: only show the Add button in the header (no duplicate title text) */
 .yaml-repeater {

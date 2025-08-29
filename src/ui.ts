@@ -69,6 +69,28 @@ export class YAMLFormRenderer {
     };
     saveBtn.addEventListener("click", () => void doSave());
 
+    // --- helper: set/unset visual error on a field, with inline message
+    function setFieldError(inputEl: HTMLElement, msg?: string) {
+      const parent = inputEl.parentElement!;
+      let hint = parent.querySelector<HTMLDivElement>(".yaml-error-msg");
+      if (msg) {
+        inputEl.classList.add("yaml-error");
+        inputEl.setAttribute("aria-invalid", "true");
+        inputEl.setAttribute("title", msg);
+        if (!hint) {
+          hint = document.createElement("div");
+          hint.className = "yaml-error-msg";
+          parent.appendChild(hint);
+        }
+        hint.textContent = msg;
+      } else {
+        inputEl.classList.remove("yaml-error");
+        inputEl.removeAttribute("aria-invalid");
+        inputEl.removeAttribute("title");
+        if (hint) hint.remove();
+      }
+    }
+
     const addRow = (label: string, control: HTMLElement) => {
       const lab = grid.createEl("label", { cls: "yaml-form-label" });
       lab.setText(label);
@@ -111,13 +133,29 @@ export class YAMLFormRenderer {
         const inp = document.createElement("input");
         inp.type = "text"; inp.placeholder = "8,8,6,6";
         inp.value = toCsvNumbers(Array.isArray(current) ? current : []);
-        inp.addEventListener("input", () => { stagedModel = setAtPath(stagedModel, bindPath, parseCsvNumbers(inp.value)); autosave ? void doSave() : markDirty(); });
+        inp.addEventListener("input", () => {
+          const { values, invalid } = parseCsvNumbers(inp.value);
+          stagedModel = setAtPath(stagedModel, bindPath, values);
+          if (invalid.length > 0) {
+            setFieldError(inp, `Invalid numbers: ${invalid.join(", ")}`);
+            status.textContent = "Fix errors before saving";
+          } else {
+            setFieldError(inp, undefined);
+            status.textContent = "Unsaved changes";
+          }
+          autosave ? void doSave() : markDirty();
+        });
         input = inp;
       } else if (f.type === "csv-text") {
         const inp = document.createElement("input");
         inp.type = "text"; inp.placeholder = "a, b, c";
         inp.value = toCsvText(Array.isArray(current) ? current : []);
-        inp.addEventListener("input", () => { stagedModel = setAtPath(stagedModel, bindPath, parseCsvText(inp.value)); autosave ? void doSave() : markDirty(); });
+        inp.addEventListener("input", () => {
+          const arr = parseCsvText(inp.value);
+          stagedModel = setAtPath(stagedModel, bindPath, arr);
+          // csv-text stays lenient
+          autosave ? void doSave() : markDirty();
+        });
         input = inp;
       } else {
         const inp = document.createElement("input");
@@ -217,12 +255,27 @@ export class YAMLFormRenderer {
             } else if (sf.type === "csv-number") {
               const inp = document.createElement("input"); inp.type = "text"; inp.placeholder = "8,8,6,6";
               inp.value = toCsvNumbers(Array.isArray(cur) ? cur : []);
-              inp.addEventListener("input", () => { stagedModel = setAtPath(stagedModel, p, parseCsvNumbers(inp.value)); autosave ? void doSave() : markDirty(); });
+              inp.addEventListener("input", () => {
+                const { values, invalid } = parseCsvNumbers(inp.value);
+                stagedModel = setAtPath(stagedModel, p, values);
+                if (invalid.length > 0) {
+                  setFieldError(inp, `Invalid numbers: ${invalid.join(", ")}`);
+                  status.textContent = "Fix errors before saving";
+                } else {
+                  setFieldError(inp, undefined);
+                  status.textContent = "Unsaved changes";
+                }
+                autosave ? void doSave() : markDirty();
+              });
               input = inp;
             } else if (sf.type === "csv-text") {
               const inp = document.createElement("input"); inp.type = "text"; inp.placeholder = "a, b, c";
               inp.value = toCsvText(Array.isArray(cur) ? cur : []);
-              inp.addEventListener("input", () => { stagedModel = setAtPath(stagedModel, p, parseCsvText(inp.value)); autosave ? void doSave() : markDirty(); });
+              inp.addEventListener("input", () => {
+                const arr = parseCsvText(inp.value);
+                stagedModel = setAtPath(stagedModel, p, arr);
+                autosave ? void doSave() : markDirty();
+              });
               input = inp;
             } else {
               const inp = document.createElement("input");
