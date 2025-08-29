@@ -1,8 +1,104 @@
-/*
+.yaml-form {
+	padding: 8px 0;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.yaml-form-grid {
+	display: grid;
+	grid-template-columns: 200px 1fr;
+	gap: 8px 12px;
+	align-items: start;
+}
 
-If your plugin does not need CSS, delete this file.
+.yaml-form-row {
+	display: contents;
+}
 
-*/
+.yaml-form-label {
+	font-weight: 600;
+	opacity: .9;
+	padding-top: 6px;
+}
+
+.yaml-form-bar {
+	margin-top: 10px;
+	display: flex;
+	gap: 10px;
+	align-items: center;
+}
+
+.yaml-form-status {
+	font-size: 0.9em;
+	opacity: .8;
+}
+
+.yaml-form-save {
+	padding: 6px 10px;
+	border-radius: 6px;
+}
+
+.yaml-repeater-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 6px;
+}
+
+.yaml-repeater-title {
+	font-weight: 700;
+}
+
+.yaml-repeater-list {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.yaml-repeater-item {
+	border: 1px solid var(--background-modifier-border, #4442);
+	border-radius: 8px;
+	padding: 8px;
+}
+
+.yaml-repeater-item-bar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 6px;
+}
+
+.yaml-repeater-item-tag {
+	font-weight: 600;
+	opacity: .8;
+}
+
+.yaml-repeater-item-controls {
+	display: flex;
+	gap: 6px;
+}
+
+.yaml-btn {
+	padding: 4px 8px;
+	border-radius: 6px;
+}
+
+.yaml-repeater-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px 12px;
+}
+
+.yaml-cell {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+@media (max-width: 680px) {
+	.yaml-form-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.yaml-repeater-grid {
+		grid-template-columns: 1fr;
+	}
+}
