@@ -6,6 +6,15 @@ import {
   coerceScalar, isVisible
 } from "./utils";
 
+type VisibilityNode = {
+  // For top-level scalar: hide/show BOTH the label and the holder (form row)
+  labelEl?: HTMLElement;      // present for top-level rows
+  holderEl: HTMLElement;      // the container that holds the input(s)
+  field: UISchemaField;
+  bindPath: string;           // absolute path inside stagedModel
+  itemBase?: string;          // for repeater items, base path like "<bindPath>.<idx>"
+};
+
 export class YAMLFormRenderer {
   constructor(
     private app: App,
@@ -43,6 +52,21 @@ export class YAMLFormRenderer {
     saveBtn.setText("Save");
     saveBtn.disabled = true;
     const markDirty = () => { saveBtn.disabled = false; status.setText("Unsaved changes"); };
+
+    // --- visibility registry for reactive visibleIf
+    const visNodes: VisibilityNode[] = [];
+    const updateVisibility = () => {
+      for (const node of visNodes) {
+        const visible = isVisible(
+          (node.field as any).visibleIf,
+          stagedModel,
+          node.itemBase
+        );
+        // For top-level rows: hide both label and holder to keep grid aligned
+        if (node.labelEl) node.labelEl.style.display = visible ? "" : "none";
+        node.holderEl.style.display = visible ? "" : "none";
+      }
+    };
 
     const doSave = async () => {
       // simple validation pass
@@ -91,11 +115,12 @@ export class YAMLFormRenderer {
       }
     }
 
-    const addRow = (label: string, control: HTMLElement) => {
-      const lab = grid.createEl("label", { cls: "yaml-form-label" });
-      lab.setText(label);
-      const holder = grid.createEl("div");
-      holder.appendChild(control);
+    // add a row; returns both elements so we can toggle them for visibility
+    const addRow = (label: string) => {
+      const labelEl = grid.createEl("label", { cls: "yaml-form-label" });
+      labelEl.setText(label);
+      const holderEl = grid.createEl("div");
+      return { labelEl, holderEl };
     };
 
     // scalar
@@ -103,15 +128,22 @@ export class YAMLFormRenderer {
       const label = f.label ?? f.path;
       const bindPath = joinPath(modelRoot, f.path || "");
       const current = getAtPath(stagedModel, bindPath);
-      if (!isVisible(f.visibleIf, stagedModel)) return; // skip if hidden
 
+      const { labelEl, holderEl } = addRow(label);
+
+      // record this node for reactive visibility (even if no visibleIf; cheap)
+      visNodes.push({ labelEl, holderEl, field: f, bindPath });
+
+      // skip building input if invisible right now? We still build it so when it becomes visible it's ready.
       let input: HTMLElement;
+      const triggerPostChange = () => { autosave ? void doSave() : markDirty(); updateVisibility(); };
+
       if (f.type === "textarea") {
         const ta = document.createElement("textarea");
         if (f.rows) ta.rows = Number(f.rows);
         ta.placeholder = f.placeholder ?? "";
         ta.value = current ?? "";
-        ta.addEventListener("input", () => { stagedModel = setAtPath(stagedModel, bindPath, ta.value); autosave ? void doSave() : markDirty(); });
+        ta.addEventListener("input", () => { stagedModel = setAtPath(stagedModel, bindPath, ta.value); triggerPostChange(); });
         input = ta;
       } else if (f.type === "select") {
         const sel = document.createElement("select");
@@ -121,13 +153,13 @@ export class YAMLFormRenderer {
           if (String(opt) === String(current)) o.selected = true;
           sel.appendChild(o);
         });
-        sel.addEventListener("input", () => { stagedModel = setAtPath(stagedModel, bindPath, sel.value); autosave ? void doSave() : markDirty(); });
+        sel.addEventListener("input", () => { stagedModel = setAtPath(stagedModel, bindPath, sel.value); triggerPostChange(); });
         input = sel;
       } else if (f.type === "checkbox") {
         const cb = document.createElement("input");
         cb.type = "checkbox";
         cb.checked = !!current;
-        cb.addEventListener("input", () => { stagedModel = setAtPath(stagedModel, bindPath, cb.checked); autosave ? void doSave() : markDirty(); });
+        cb.addEventListener("input", () => { stagedModel = setAtPath(stagedModel, bindPath, cb.checked); triggerPostChange(); });
         input = cb;
       } else if (f.type === "csv-number") {
         const inp = document.createElement("input");
@@ -143,7 +175,7 @@ export class YAMLFormRenderer {
             setFieldError(inp, undefined);
             status.textContent = "Unsaved changes";
           }
-          autosave ? void doSave() : markDirty();
+          triggerPostChange();
         });
         input = inp;
       } else if (f.type === "csv-text") {
@@ -153,8 +185,7 @@ export class YAMLFormRenderer {
         inp.addEventListener("input", () => {
           const arr = parseCsvText(inp.value);
           stagedModel = setAtPath(stagedModel, bindPath, arr);
-          // csv-text stays lenient
-          autosave ? void doSave() : markDirty();
+          triggerPostChange();
         });
         input = inp;
       } else {
@@ -165,26 +196,26 @@ export class YAMLFormRenderer {
         if (f.step != null) inp.step = String(f.step);
         inp.placeholder = f.placeholder ?? "";
         inp.value = current ?? "";
-        inp.addEventListener("input", () => { stagedModel = setAtPath(stagedModel, bindPath, coerceScalar(f.type ?? "text", inp.value)); autosave ? void doSave() : markDirty(); });
+        inp.addEventListener("input", () => { stagedModel = setAtPath(stagedModel, bindPath, coerceScalar(f.type ?? "text", inp.value)); triggerPostChange(); });
         input = inp;
       }
-      addRow(label, input);
+
+      holderEl.appendChild(input);
     };
 
     // repeater
     const renderRepeater = (rf: RepeaterField) => {
       const label = rf.label ?? rf.path;
       const bindPath = joinPath(modelRoot, rf.path || "");
-      if (!isVisible(rf.visibleIf, stagedModel)) return;
 
-      let a = getAtPath<any[]>(stagedModel, bindPath);
-      if (!Array.isArray(a)) { a = []; stagedModel = setAtPath(stagedModel, bindPath, a); }
+      // row: label on left, holder on right (and register for visibility)
+      const { labelEl, holderEl } = addRow(label);
+      visNodes.push({ labelEl, holderEl, field: rf, bindPath });
 
-      // Holder for the right-side control column (give it a class for styling)
-      const holder = document.createElement("div");
-      holder.className = "yaml-repeater";
+      let arr = getAtPath<any[]>(stagedModel, bindPath);
+      if (!Array.isArray(arr)) { arr = []; stagedModel = setAtPath(stagedModel, bindPath, arr); }
 
-      // Header: keep only the actions (Add button), no duplicate title
+      // Holder content
       const head = document.createElement("div"); head.className = "yaml-repeater-head";
       const actions = document.createElement("div"); actions.className = "yaml-repeater-actions";
       const addBtn = document.createElement("button"); addBtn.className = "yaml-btn"; addBtn.type = "button"; addBtn.textContent = "Add";
@@ -195,8 +226,8 @@ export class YAMLFormRenderer {
 
       const refresh = (silent = false) => {
         list.innerHTML = "";
-        const arr = getAtPath<any[]>(stagedModel, bindPath) ?? [];
-        arr.forEach((item, idx) => {
+        const a = getAtPath<any[]>(stagedModel, bindPath) ?? [];
+        a.forEach((item, idx) => {
           const card = document.createElement("div"); card.className = "yaml-repeater-item";
           const barI = document.createElement("div"); barI.className = "yaml-repeater-item-bar";
           const tag = document.createElement("span"); tag.className = "yaml-repeater-item-tag"; tag.textContent = `#${idx+1}`;
@@ -211,25 +242,25 @@ export class YAMLFormRenderer {
           const gridR = document.createElement("div"); gridR.className = "yaml-repeater-grid";
 
           rf.itemSchema.forEach(sf => {
-            if (!isVisible(sf.visibleIf, stagedModel, `${bindPath}.${idx}`)) return;
-
-            const fLabel = sf.label ?? sf.path;
             const cell = document.createElement("div"); cell.className = "yaml-cell";
+            const fLabel = sf.label ?? sf.path;
             const l2 = document.createElement("label"); l2.className = "yaml-form-label"; l2.textContent = fLabel;
             const p = `${bindPath}.${idx}.${sf.path}`;
             const cur = getAtPath(stagedModel, p);
 
             let input: HTMLElement;
+            const triggerPostChange = () => { autosave ? void doSave() : markDirty(); updateVisibility(); };
+
             if (sf.type === "textarea") {
               const ta = document.createElement("textarea");
               if (sf.rows) ta.rows = Number(sf.rows);
               ta.placeholder = sf.placeholder ?? "";
               ta.value = cur ?? "";
-              ta.addEventListener("input", () => { stagedModel = setAtPath(stagedModel, p, ta.value); autosave ? void doSave() : markDirty(); });
+              ta.addEventListener("input", () => { stagedModel = setAtPath(stagedModel, p, ta.value); triggerPostChange(); });
               input = ta;
             } else if (sf.type === "checkbox") {
               const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!cur;
-              cb.addEventListener("input", () => { stagedModel = setAtPath(stagedModel, p, cb.checked); autosave ? void doSave() : markDirty(); });
+              cb.addEventListener("input", () => { stagedModel = setAtPath(stagedModel, p, cb.checked); triggerPostChange(); });
               input = cb;
             } else if (sf.type === "select") {
               const sel = document.createElement("select");
@@ -238,7 +269,7 @@ export class YAMLFormRenderer {
                 if (String(opt) === String(cur)) o.selected = true;
                 sel.appendChild(o);
               });
-              sel.addEventListener("input", () => { stagedModel = setAtPath(stagedModel, p, sel.value); autosave ? void doSave() : markDirty(); });
+              sel.addEventListener("input", () => { stagedModel = setAtPath(stagedModel, p, sel.value); triggerPostChange(); });
               input = sel;
             } else if (sf.type === "number") {
               const inp = document.createElement("input"); inp.type = "number";
@@ -249,7 +280,7 @@ export class YAMLFormRenderer {
               inp.addEventListener("input", () => {
                 const n = Number(inp.value);
                 stagedModel = setAtPath(stagedModel, p, Number.isFinite(n) ? n : null);
-                autosave ? void doSave() : markDirty();
+                triggerPostChange();
               });
               input = inp;
             } else if (sf.type === "csv-number") {
@@ -265,7 +296,7 @@ export class YAMLFormRenderer {
                   setFieldError(inp, undefined);
                   status.textContent = "Unsaved changes";
                 }
-                autosave ? void doSave() : markDirty();
+                triggerPostChange();
               });
               input = inp;
             } else if (sf.type === "csv-text") {
@@ -274,7 +305,7 @@ export class YAMLFormRenderer {
               inp.addEventListener("input", () => {
                 const arr = parseCsvText(inp.value);
                 stagedModel = setAtPath(stagedModel, p, arr);
-                autosave ? void doSave() : markDirty();
+                triggerPostChange();
               });
               input = inp;
             } else {
@@ -282,13 +313,21 @@ export class YAMLFormRenderer {
               inp.type = (sf.type && ["date","time","datetime-local","number","text"].includes(sf.type)) ? sf.type : "text";
               inp.placeholder = sf.placeholder ?? "";
               inp.value = cur ?? "";
-              inp.addEventListener("input", () => { stagedModel = setAtPath(stagedModel, p, inp.value); autosave ? void doSave() : markDirty(); });
+              inp.addEventListener("input", () => { stagedModel = setAtPath(stagedModel, p, inp.value); triggerPostChange(); });
               input = inp;
             }
 
             cell.appendChild(l2);
             cell.appendChild(input);
             gridR.appendChild(cell);
+
+            // register each repeater subfield for reactive visibility (toggle the cell)
+            visNodes.push({
+              holderEl: cell,            // hide/show this cell
+              field: sf,
+              bindPath: p,               // absolute path
+              itemBase: `${bindPath}.${idx}` // base for visibleIf path resolution
+            });
           });
 
           card.appendChild(gridR);
@@ -299,6 +338,7 @@ export class YAMLFormRenderer {
             [a2[idx-1], a2[idx]] = [a2[idx], a2[idx-1]];
             stagedModel = setAtPath(stagedModel, bindPath, a2);
             refresh();
+            updateVisibility();
           });
           down.addEventListener("click", () => {
             const a2 = getAtPath<any[]>(stagedModel, bindPath) ?? [];
@@ -306,25 +346,25 @@ export class YAMLFormRenderer {
             [a2[idx+1], a2[idx]] = [a2[idx], a2[idx+1]];
             stagedModel = setAtPath(stagedModel, bindPath, a2);
             refresh();
+            updateVisibility();
           });
           del.addEventListener("click", () => {
             const a2 = getAtPath<any[]>(stagedModel, bindPath) ?? [];
             a2.splice(idx, 1);
             stagedModel = setAtPath(stagedModel, bindPath, a2);
             refresh();
+            updateVisibility();
           });
 
           list.appendChild(card);
         });
+
         if (!silent) { autosave ? void doSave() : markDirty(); }
       };
 
-      // Add row with left label + right-side holder
-      addRow(label, holder);
-      holder.appendChild(head);
-      holder.appendChild(list);
+      holderEl.appendChild(head);
+      holderEl.appendChild(list);
 
-      // Add button handler
       addBtn.addEventListener("click", () => {
         const blank: Record<string, any> = {};
         (rf.itemSchema ?? []).forEach(sf => {
@@ -332,10 +372,11 @@ export class YAMLFormRenderer {
           else if (sf.type === "csv-number" || sf.type === "csv-text") blank[sf.path] = [];
           else blank[sf.path] = "";
         });
-        const arr = getAtPath<any[]>(stagedModel, bindPath) ?? [];
-        arr.push(blank);
-        stagedModel = setAtPath(stagedModel, bindPath, arr);
+        const a = getAtPath<any[]>(stagedModel, bindPath) ?? [];
+        a.push(blank);
+        stagedModel = setAtPath(stagedModel, bindPath, a);
         refresh();
+        updateVisibility();
       });
 
       refresh(true);
@@ -350,6 +391,9 @@ export class YAMLFormRenderer {
     // mount
     rootEl.empty();
     rootEl.appendChild(wrap);
+
+    // initial visibility pass
+    updateVisibility();
 
     // tiny API (optional)
     // @ts-ignore
@@ -391,7 +435,7 @@ export class YAMLFormRenderer {
   }
 
   private applyValidationStyles(_grid: HTMLElement, _invalidPaths: string[]) {
-    // Placeholder: could map bind paths to data attributes and toggle .yaml-error.
+    // Placeholder for future: map data-paths to inputs and toggle .yaml-error.
   }
 }
 
