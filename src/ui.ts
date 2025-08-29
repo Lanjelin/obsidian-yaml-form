@@ -142,7 +142,7 @@ export class YAMLFormRenderer {
       const head = document.createElement("div"); head.className = "yaml-repeater-head";
       const title = document.createElement("div"); title.className = "yaml-repeater-title"; title.textContent = label;
       const actions = document.createElement("div"); actions.className = "yaml-repeater-actions";
-      const addBtn = document.createElement("button"); addBtn.className = "yaml-btn"; addBtn.type = "button"; addBtn.textContent = "Legg til";
+      const addBtn = document.createElement("button"); addBtn.className = "yaml-btn"; addBtn.type = "button"; addBtn.textContent = "Add";
       actions.appendChild(addBtn); head.appendChild(title); head.appendChild(actions);
       const list = document.createElement("div"); list.className = "yaml-repeater-list";
 
@@ -156,7 +156,7 @@ export class YAMLFormRenderer {
           const ctr = document.createElement("div"); ctr.className = "yaml-repeater-item-controls";
           const up = document.createElement("button"); up.type = "button"; up.className = "yaml-btn"; up.textContent = "↑";
           const down = document.createElement("button"); down.type = "button"; down.className = "yaml-btn"; down.textContent = "↓";
-          const del = document.createElement("button"); del.type = "button"; del.className = "yaml-btn"; del.textContent = "Slett";
+          const del = document.createElement("button"); del.type = "button"; del.className = "yaml-btn"; del.textContent = "Remove";
           ctr.appendChild(up); ctr.appendChild(down); ctr.appendChild(del);
           barI.appendChild(tag); barI.appendChild(ctr);
           card.appendChild(barI);
