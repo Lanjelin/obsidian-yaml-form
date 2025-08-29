@@ -1,94 +1,262 @@
-# Obsidian Sample Plugin
+# YAML Form (Obsidian Plugin)
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+Render interactive forms from a YAML **UI schema** in your note’s frontmatter and write values back into frontmatter (or a nested object). Great for journal entries, workouts, finances, recipes, and more.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+## Installation
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+Currently you can install the plugin in two ways:
 
-## First time developing plugins?
+1. **Download from Release**
+   - Go to the [Releases](./release/) page
+   - Download the latest `yaml-form-vX.Y.Z.zip`
+   - Unzip into `<vault>/.obsidian/plugins/yaml-form/`
+   - Enable in *Settings → Community Plugins*
 
-Quick starting guide for new plugin devs:
+2. **Using BRAT (Beta Reviewers Auto-update Tester)**
+   - Install the BRAT plugin
+   - Add this repo URL in BRAT → *Add Beta Plugin*
+   - Enable the plugin in your vault
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+---
 
-## Releasing new releases
+## Usage
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+1. Add a schema under `form:` in your note’s frontmatter.
+2. Insert a code block:
+   ```
+   ```yaml-form
+   ```
+   ```
+   The block will render an interactive form that edits the frontmatter.
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+---
 
-## Adding your plugin to the community plugin list
+## Field Types
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
-
-## How to use
-
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
-
-## Manually installing the plugin
-
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
-
-## Improve code quality with eslint (optional)
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- To use eslint with this project, make sure to install eslint from terminal:
-  - `npm install -g eslint`
-- To use eslint to analyze this project use this command:
-  - `eslint main.ts`
-  - eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint .\src\`
-
-## Funding URL
-
-You can include funding URLs where people who use your plugin can financially support it.
-
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
-
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
+### Text input
+```yaml
+---
+title: "My entry"
+form:
+  fields:
+    - label: Title
+      path: title
+      type: text
+---
 ```
+![Text](screenshots/Text.png)
 
-If you have multiple URLs, you can also do:
-
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
+### Textarea
+```yaml
+---
+description: ""
+form:
+  fields:
+    - label: Description
+      path: description
+      type: textarea
+      rows: 4
+---
 ```
+![Textarea](screenshots/Textarea.png)
 
-## API Documentation
+### Number
+```yaml
+---
+calories: 0
+form:
+  fields:
+    - label: Calories
+      path: calories
+      type: number
+      min: 0
+---
+```
+![Number](screenshots/Number.png)
 
-See https://github.com/obsidianmd/obsidian-api
+### Date / Time
+```yaml
+---
+date: 2025-08-29
+form:
+  fields:
+    - label: Date
+      path: date
+      type: date
+---
+```
+![Date Time](screenshots/Date_-_Time.png)
+
+### Select (dropdown)
+```yaml
+---
+category: Lunch
+form:
+  fields:
+    - label: Category
+      path: category
+      type: select
+      options: [Breakfast, Lunch, Dinner]
+---
+```
+![Select](screenshots/Select.png)
+
+### Checkbox (boolean)
+```yaml
+---
+done: false
+form:
+  fields:
+    - label: Done?
+      path: done
+      type: checkbox
+---
+```
+![Checkbox](screenshots/Checkbox.png)
+
+### CSV Text / CSV Number (arrays of scalars)
+```yaml
+---
+tags: [work, health]
+reps: [8,8,6,6]
+form:
+  fields:
+    - label: Tags
+      path: tags
+      type: csv-text
+    - label: Reps
+      path: reps
+      type: csv-number
+---
+```
+![CSV Text CSV Number](screenshots/CSV_Text_-_CSV_Number.png)
+
+### Repeater (array of objects)
+```yaml
+---
+workouts:
+  - exercise: Pushups
+    sets: 3
+    reps: [10,10,12]
+form:
+  fields:
+    - label: Workouts
+      path: workouts
+      type: repeater
+      itemSchema:
+        - label: Exercise
+          path: exercise
+          type: text
+        - label: Sets
+          path: sets
+          type: number
+        - label: Reps
+          path: reps
+          type: csv-number
+---
+```
+Features:
+- Add new items (`Add` button)
+- Remove, reorder (↑/↓)
+- Inputs expand to full width
+
+![Repeater](screenshots/Repeater.png)
+
+---
+
+## Conditional Fields (visibleIf)
+
+You can show a field only if another has a certain value:
+
+```yaml
+---
+mood: Happy
+comment: ""
+form:
+  fields:
+    - label: Mood
+      path: mood
+      type: select
+      options: [Happy, Sad]
+    - label: Comment
+      path: comment
+      type: textarea
+      visibleIf:
+        path: mood
+        equals: Sad
+---
+```
+![Conditional](screenshots/Conditional_Happy.png)
+![Conditional](screenshots/Conditional_Sad.png)
+
+---
+
+## Autosave
+
+Set globally in plugin settings or per note:
+```yaml
+form:
+  autosave: true
+```
+With autosave on, all changes write back immediately. Otherwise, use the **Save** button.
+
+---
+
+## Advanced Example: Workout Log
+```yaml
+---
+date: 2025-08-14
+week: 1
+program_day: B
+workouts:
+  - exercise: Deadlift
+    sets: 4
+    reps: [5,5,5,5]
+    weight: [50]
+    notes: "Felt heavy"
+form:
+  fields:
+    - label: Date
+      path: date
+      type: date
+    - label: Week
+      path: week
+      type: number
+    - label: Program Day
+      path: program_day
+      type: text
+    - label: Workouts
+      path: workouts
+      type: repeater
+      itemSchema:
+        - label: Exercise
+          path: exercise
+          type: text
+        - label: Sets
+          path: sets
+          type: number
+        - label: Reps
+          path: reps
+          type: csv-number
+        - label: Weight
+          path: weight
+          type: csv-number
+        - label: Notes
+          path: notes
+          type: textarea
+---
+```
+![Workout Log](screenshots/Workout_Log.png)
+
+---
+
+## Roadmap
+- Support for external/shared schemas
+- Settings UI for global defaults
+
+---
+
+## Contributing
+PRs welcome! Please open an issue first if you’d like to discuss a feature.
+
+
