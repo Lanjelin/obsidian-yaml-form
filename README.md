@@ -23,10 +23,10 @@ Currently you can install the plugin in two ways:
 
 1. Add a schema under `form:` in your note’s frontmatter.
 2. Insert a code block:
-   ```
+   ````
    ```yaml-form
    ```
-   ```
+   ````
    The block will render an interactive form that edits the frontmatter.
 
 ---
