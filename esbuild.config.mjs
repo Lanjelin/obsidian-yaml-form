@@ -1,5 +1,4 @@
 import esbuild from "esbuild";
-
 const watch = process.argv.includes("--watch");
 
 esbuild.build({

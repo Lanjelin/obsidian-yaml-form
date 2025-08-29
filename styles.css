@@ -4,7 +4,7 @@
 
 .yaml-form-grid {
 	display: grid;
-	grid-template-columns: 200px 1fr;
+	grid-template-columns: var(--yaml-form-grid, 200px 1fr);
 	gap: 8px 12px;
 	align-items: start;
 }
@@ -33,6 +33,11 @@
 
 .yaml-form-save {
 	padding: 6px 10px;
+	border-radius: 6px;
+}
+
+.yaml-error {
+	outline: 2px solid var(--text-error, #e25);
 	border-radius: 6px;
 }
 
