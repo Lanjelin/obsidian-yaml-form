@@ -1,7 +1,7 @@
 {
 	"id": "yaml-form",
 	"name": "YAML Form",
-	"version": "0.2.1",
+	"version": "0.2.2",
 	"minAppVersion": "1.5.7",
 	"description": "Render interactive forms from frontmatter and write values back.",
 	"author": "Lanjelin",

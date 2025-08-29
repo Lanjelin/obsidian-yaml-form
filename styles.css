@@ -2,6 +2,7 @@
 	padding: 8px 0;
 }
 
+/* Outer form grid: label | control */
 .yaml-form-grid {
 	display: grid;
 	grid-template-columns: var(--yaml-form-grid, 200px 1fr);
@@ -19,6 +20,7 @@
 	padding-top: 6px;
 }
 
+/* Save/status bar */
 .yaml-form-bar {
 	margin-top: 10px;
 	display: flex;
@@ -36,22 +38,36 @@
 	border-radius: 6px;
 }
 
+/* Validation (hook reserved) */
 .yaml-error {
 	outline: 2px solid var(--text-error, #e25);
 	border-radius: 6px;
 }
 
+/* Repeater: only show the Add button in the header (no duplicate title text) */
+.yaml-repeater {
+	width: 100%;
+}
+
 .yaml-repeater-head {
 	display: flex;
-	justify-content: space-between;
+	justify-content: flex-end;
+	/* right-align Add button */
 	align-items: center;
 	margin-bottom: 6px;
 }
 
 .yaml-repeater-title {
-	font-weight: 700;
+	display: none;
 }
 
+/* ensure no duplicate label if present */
+.yaml-repeater-actions .yaml-btn {
+	padding: 4px 8px;
+	border-radius: 6px;
+}
+
+/* Repeater item cards */
 .yaml-repeater-list {
 	display: flex;
 	flex-direction: column;
@@ -86,9 +102,10 @@
 	border-radius: 6px;
 }
 
+/* Inner repeater field grid: expand to use available width */
 .yaml-repeater-grid {
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 	gap: 8px 12px;
 }
 
@@ -98,6 +115,16 @@
 	gap: 4px;
 }
 
+/* Inputs should stretch nicely inside repeater items */
+.yaml-repeater-grid input,
+.yaml-repeater-grid select,
+.yaml-repeater-grid textarea {
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+/* Responsive */
 @media (max-width: 680px) {
 	.yaml-form-grid {
 		grid-template-columns: 1fr;

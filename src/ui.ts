@@ -1,6 +1,10 @@
 import { App, MarkdownPostProcessorContext } from "obsidian";
 import { UISchema, UISchemaField, RepeaterField, YAMLFormSettings } from "./types";
-import { deepClone, getAtPath, setAtPath, joinPath, parseCsvNumbers, toCsvNumbers, parseCsvText, toCsvText, coerceScalar, isVisible } from "./utils";
+import {
+  deepClone, getAtPath, setAtPath, joinPath,
+  parseCsvNumbers, toCsvNumbers, parseCsvText, toCsvText,
+  coerceScalar, isVisible
+} from "./utils";
 
 export class YAMLFormRenderer {
   constructor(
@@ -138,12 +142,17 @@ export class YAMLFormRenderer {
       let a = getAtPath<any[]>(stagedModel, bindPath);
       if (!Array.isArray(a)) { a = []; stagedModel = setAtPath(stagedModel, bindPath, a); }
 
+      // Holder for the right-side control column (give it a class for styling)
       const holder = document.createElement("div");
+      holder.className = "yaml-repeater";
+
+      // Header: keep only the actions (Add button), no duplicate title
       const head = document.createElement("div"); head.className = "yaml-repeater-head";
-      const title = document.createElement("div"); title.className = "yaml-repeater-title"; title.textContent = label;
       const actions = document.createElement("div"); actions.className = "yaml-repeater-actions";
       const addBtn = document.createElement("button"); addBtn.className = "yaml-btn"; addBtn.type = "button"; addBtn.textContent = "Add";
-      actions.appendChild(addBtn); head.appendChild(title); head.appendChild(actions);
+      actions.appendChild(addBtn);
+      head.appendChild(actions);
+
       const list = document.createElement("div"); list.className = "yaml-repeater-list";
 
       const refresh = (silent = false) => {
@@ -257,9 +266,12 @@ export class YAMLFormRenderer {
         if (!silent) { autosave ? void doSave() : markDirty(); }
       };
 
+      // Add row with left label + right-side holder
       addRow(label, holder);
       holder.appendChild(head);
       holder.appendChild(list);
+
+      // Add button handler
       addBtn.addEventListener("click", () => {
         const blank: Record<string, any> = {};
         (rf.itemSchema ?? []).forEach(sf => {
@@ -272,6 +284,7 @@ export class YAMLFormRenderer {
         stagedModel = setAtPath(stagedModel, bindPath, arr);
         refresh();
       });
+
       refresh(true);
     };
 
@@ -285,7 +298,7 @@ export class YAMLFormRenderer {
     rootEl.empty();
     rootEl.appendChild(wrap);
 
-    // expose a tiny API for future (optional)
+    // tiny API (optional)
     // @ts-ignore
     (wrap as any).__yamlForm = { save: doSave, markDirty, getModel: () => deepClone(stagedModel) };
   }
@@ -294,19 +307,19 @@ export class YAMLFormRenderer {
     const invalid: string[] = [];
 
     const checkField = (f: UISchemaField, bindPath: string) => {
-      if (!f.required) return;
-      if (!isVisible(f.visibleIf, stagedModel)) return;
+      if (!(f as any).required) return;
+      if (!isVisible((f as any).visibleIf, stagedModel)) return;
       const v = getAtPath(stagedModel, bindPath);
       const empty = v == null || (typeof v === "string" && v.trim() === "") || (Array.isArray(v) && v.length === 0);
       if (empty) invalid.push(bindPath);
     };
 
     fields.forEach(f => {
-      const bindPath = joinPath(modelRoot, f.path);
+      const bindPath = joinPath(modelRoot, (f as any).path);
       if (f.type === "repeater") {
         const arr = getAtPath<any[]>(stagedModel, bindPath) ?? [];
         arr.forEach((_, i) => {
-          (f.itemSchema || []).forEach(sf => {
+          ((f as RepeaterField).itemSchema || []).forEach(sf => {
             const p = `${bindPath}.${i}.${sf.path}`;
             if (!isVisible(sf.visibleIf, stagedModel, `${bindPath}.${i}`)) return;
             if (sf.required) {
@@ -324,11 +337,8 @@ export class YAMLFormRenderer {
     return invalid;
   }
 
-  private applyValidationStyles(grid: HTMLElement, invalidPaths: string[]) {
-    // Very light approach: on save, we can’t map paths to DOM nodes without extra bookkeeping.
-    // Quick heuristic: just flash the save bar message; for a tighter mapping,
-    // you could add data-path attributes during render and toggle .yaml-error on those inputs.
-    // (Left simple to keep first version minimal.)
+  private applyValidationStyles(_grid: HTMLElement, _invalidPaths: string[]) {
+    // Placeholder: could map bind paths to data attributes and toggle .yaml-error.
   }
 }
 
