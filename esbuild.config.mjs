@@ -1,17 +1,28 @@
-import esbuild from "esbuild";
+import * as esbuild from "esbuild";
+
 const watch = process.argv.includes("--watch");
 
-esbuild.build({
+const options = {
   entryPoints: ["src/main.ts"],
   bundle: true,
-  outfile: "main.js",
+  outfile: "dist/main.js",
   format: "cjs",
   platform: "browser",
-  sourcemap: watch ? "inline" : false,
   external: ["obsidian"],
   logLevel: "info",
-  watch: watch && {
-    onRebuild(err) { if (err) console.error("❌ rebuild failed", err); else console.log("✅ rebuild"); }
+  sourcemap: watch ? "inline" : false,
+};
+
+async function run() {
+  if (watch) {
+    const ctx = await esbuild.context(options);
+    await ctx.watch();
+    console.log("✅ watching for changes...");
+  } else {
+    await esbuild.build(options);
+    console.log("✅ build complete");
   }
-}).then(() => console.log("✅ build")).catch(() => process.exit(1));
+}
+
+run().catch(() => process.exit(1));
 

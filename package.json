@@ -4,10 +4,14 @@
 	"private": true,
 	"license": "MIT",
 	"scripts": {
+		"prebuild": "node scripts/copy-assets.mjs all",
 		"build": "node esbuild.config.mjs",
-		"dev": "node esbuild.config.mjs --watch"
+		"dev": "node scripts/copy-assets.mjs all && node esbuild.config.mjs --watch",
+		"pack": "node scripts/package.mjs",
+		"release": "npm run build && npm run pack"
 	},
 	"devDependencies": {
+		"archiver": "^7.0.1",
 		"esbuild": "^0.23.0",
 		"obsidian": "^1.5.7",
 		"typescript": "^5.5.4"
