@@ -1,6 +1,6 @@
-# YAML Form (Obsidian Plugin)
+# Obsidian YAML Form
 
-Render interactive forms from a YAML **UI schema** in your note’s frontmatter and write values back into frontmatter (or a nested object). Great for journal entries, workouts, finances, recipes, and more.
+Render interactive forms from a YAML schema in your note’s frontmatter and write values back into frontmatter.
 
 ## Installation
 
@@ -214,6 +214,11 @@ workouts:
     reps: [5,5,5,5]
     weight: [50]
     notes: "Felt heavy"
+  - exercise: Military Press
+    sets: 4
+    reps: [8,7,8,8]
+    weight: [30,30,25,25]
+    notes: ""
 form:
   fields:
     - label: Date
