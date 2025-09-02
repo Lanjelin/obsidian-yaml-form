@@ -1,3 +1,9 @@
+# Archived
+
+Have a look at the [Meta Bind](https://github.com/mProjectsCode/obsidian-meta-bind-plugin) plugin instead, it's a lot more powerful and flexible.
+
+---
+
 # Obsidian YAML Form
 
 Render interactive forms from a YAML schema in your note’s frontmatter and write values back into frontmatter.
